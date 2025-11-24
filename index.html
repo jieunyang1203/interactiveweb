@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Projects Viewer</title>
+    <style>
+        @font-face {
+            font-family: 'GothicA1';
+            src: url('GothicA1-Regular.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'GothicA1', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #ffffff;
+            overflow: hidden;
+        }
+
+        /* 네비게이션 컨테이너 */
+        .nav-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 9999;
+        }
+
+        /* List 버튼 스타일 */
+        .list-toggle {
+            background-color: rgba(217, 217, 217, 0.7);
+            border: none;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            padding: 6px 12px;
+            color: #000;
+            text-align: left;
+            transition: background-color 0.2s ease;
+            border-radius: 4px;
+        }
+
+        .list-toggle:hover {
+            background-color: rgba(217, 217, 217, 0.9);
+        }
+
+        /* 학생 리스트 컨테이너 */
+        .student-list {
+            display: none;
+            margin-top: 10px;
+            gap: 8px;
+            max-width: 800px;
+            grid-template-columns: repeat(8, 1fr);
+        }
+
+        .student-list.active {
+            display: grid;
+        }
+
+        /* 학생 이름 버튼 스타일 */
+        .student-btn {
+            background-color: rgba(217, 217, 217, 0.7);
+            border: none;
+            color: #000;
+            font-size: 13px;
+            padding: 6px 8px;
+            transition: background-color 0.2s ease;
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .student-btn:hover {
+            background-color: rgba(217, 217, 217, 0.9);
+        }
+
+        .student-btn.current {
+            background-color: rgba(100, 100, 100, 0.8);
+            color: #fff;
+        }
+
+        .student-btn:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        /* iframe 컨테이너 */
+        .iframe-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* 초기 화면 (iframe 없을 때) */
+        .welcome-message {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-size: 16px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-container">
+        <button class="list-toggle" id="listToggle">List</button>
+        <div class="student-list" id="studentList">
+            <!-- 학생 이름들이 여기 동적으로 추가됩니다 -->
+        </div>
+    </div>
+
+    <div class="iframe-container" id="iframeContainer">
+        <div class="welcome-message" id="welcomeMessage">
+            학생을 선택해주세요
+        </div>
+    </div>
+
+    <script>
+        // 학생 명단 및 링크 (가나다순으로 정렬)
+        const students = [
+            { name: '권민서', link: 'https://kwonminseo0920.github.io/movie_-mm/' },
+            { name: '동유빈', link: 'https://noa3379.github.io/Moris-ravel/main.html' },
+            { name: '박성수', link: 'https://pssuos.github.io/interactive-web-final/' },
+            { name: '박지우', link: 'https://vinylrevival.dothome.co.kr/' },
+            { name: '박지혜', link: 'https://jiddonng.github.io/haveanicetrip/hnt2025.html' },
+            { name: '서정민', link: 'https://jmseo1028.github.io/app/' },
+            { name: '신기준', link: 'https://kieferhub.github.io/barcaxspotify/' },
+            { name: '양지은', link: 'https://jieunyang1203.github.io/REvisionlens/' },
+            { name: '윤다경', link: 'https://dakyung17.github.io/youthdrama/' },
+            { name: '이소민', link: 'https://momang511.github.io/bears/' },
+            { name: '이시네', link: 'https://9erl2.github.io/suuliin/index.html' },
+            { name: '이한나', link: 'https://hanna040207hd-arch.github.io/my-website/' },
+            { name: '임채영', link: 'https://chaeyoung018.github.io/project/somnia.html' },
+            { name: '장혜원', link: 'https://hanseowon.github.io/book-pay.back/index.html' },
+            { name: '한서원', link: 'https://hanseowon.github.io/book-pay.back/index.html' }
+        ];
+
+        // DOM 요소
+        const listToggle = document.getElementById('listToggle');
+        const studentList = document.getElementById('studentList');
+        const iframeContainer = document.getElementById('iframeContainer');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        
+        let currentStudent = null;
+        let currentIframe = null;
+
+        // 학생 페이지 로드 함수
+        function loadStudentPage(student) {
+            if (!student.link) return;
+            
+            // 이전 current 클래스 제거
+            document.querySelectorAll('.student-btn').forEach(btn => {
+                btn.classList.remove('current');
+            });
+            
+            // 현재 버튼에 current 클래스 추가
+            event.target.classList.add('current');
+            
+            // welcome 메시지 제거
+            if (welcomeMessage) {
+                welcomeMessage.remove();
+            }
+            
+            // 이전 iframe 제거
+            if (currentIframe) {
+                currentIframe.remove();
+            }
+            
+            // 새 iframe 생성
+            currentIframe = document.createElement('iframe');
+            currentIframe.src = student.link;
+            currentIframe.title = student.name + '의 프로젝트';
+            
+            iframeContainer.appendChild(currentIframe);
+            currentStudent = student;
+            
+            // 리스트 닫기
+            studentList.classList.remove('active');
+        }
+
+        // 학생 리스트 생성
+        function createStudentList() {
+            studentList.innerHTML = '';
+            students.forEach(student => {
+                const button = document.createElement('button');
+                button.className = 'student-btn';
+                button.textContent = student.name;
+                
+                if (student.link) {
+                    button.onclick = (e) => loadStudentPage(student);
+                } else {
+                    button.disabled = true;
+                }
+                
+                if (currentStudent && currentStudent.name === student.name) {
+                    button.classList.add('current');
+                }
+                
+                studentList.appendChild(button);
+            });
+        }
+
+        // 토글 기능
+        listToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            studentList.classList.toggle('active');
+        });
+
+        // 페이지 로드 시 학생 리스트 생성
+        createStudentList();
+
+        // 리스트 외부 클릭 시 닫기
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.nav-container')) {
+                studentList.classList.remove('active');
+            }
+        });
+
+        // URL 파라미터로 특정 학생 페이지 바로 로드, 없으면 첫 번째 학생(권민서) 로드
+        const urlParams = new URLSearchParams(window.location.search);
+        const studentName = urlParams.get('student');
+        if (studentName) {
+            const student = students.find(s => s.name === studentName);
+            if (student && student.link) {
+                loadStudentPage(student);
+            }
+        } else {
+            // 첫 번째 학생(권민서) 자동 로드
+            if (students[0] && students[0].link) {
+                // welcome 메시지 제거
+                if (welcomeMessage) {
+                    welcomeMessage.remove();
+                }
+
+                // iframe 생성
+                currentIframe = document.createElement('iframe');
+                currentIframe.src = students[0].link;
+                currentIframe.title = students[0].name + '의 프로젝트';
+
+                iframeContainer.appendChild(currentIframe);
+                currentStudent = students[0];
+
+                // 첫 번째 버튼에 current 클래스 추가
+                const firstBtn = studentList.querySelector('.student-btn');
+                if (firstBtn) {
+                    firstBtn.classList.add('current');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
